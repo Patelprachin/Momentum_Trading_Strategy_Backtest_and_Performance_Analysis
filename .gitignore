@@ -1,0 +1,24 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Conda environment files
+*.conda
+*.env
+
+# MacOS files
+.DS_Store
+
+# PyCharm files
+.idea/
+
+# Data files
+data/raw/
+data/cleaned/
+data/calculations/
+
+# Environment file
+environment.yml
