@@ -20,7 +20,7 @@ def test_data_fetcher():
     end_date = datetime.now().strftime('%Y-%m-%d')
     start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
     api_key = '56054c41dd125c5b9a2678c7b34451d999f09d39'  # Replace with your Tiingo API key
-    test_save_dir = 'data/test/'  # Directory for saving test data
+    test_save_dir = '/Users/macbook/Desktop/Farrer_Quant_Assignment/data/test/'  # Directory for saving test data
     os.makedirs(test_save_dir, exist_ok=True)
 
     # Test SP500TickerScraper
