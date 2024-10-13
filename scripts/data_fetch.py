@@ -26,7 +26,7 @@ class SP500TickerScraper:
         """
 
         self.url = url
-        self.save_dir = 'data/raw/'  # Directory to save the scraped data
+        self.save_dir = '/Users/macbook/Desktop/Farrer_Quant_Assignment/data/raw/'  # Directory to save the scraped data
         os.makedirs(self.save_dir, exist_ok=True)  # Ensure save directory exists
 
     def get_sp500_companies(self):
@@ -54,7 +54,7 @@ class TiingoDataFetcher:
     This class fetches historical stock data for S&P 500 companies from the Tiingo API and saves them as CSV files.
     """
 
-    def __init__(self, api_key, tickers, start_date, end_date, save_dir='data/raw/'):
+    def __init__(self, api_key, tickers, start_date, end_date, save_dir='/Users/macbook/Desktop/Farrer_Quant_Assignment/data/raw/'):
         """
         Initializes the Tiingo data fetcher with API key, tickers, date range, and save directory.
 
@@ -106,7 +106,7 @@ class TiingoDataFetcher:
     def fetch_data(self):
         """
          Fetches historical data for all tickers, saves them as individual CSV files, and combines them into one CSV file.
-         """
+        """
 
         fetched_tickers = self.load_checkpoint()  # Load already fetched tickers from checkpoint
         remaining_tickers = [ticker for ticker in self.tickers if ticker not in fetched_tickers]
@@ -170,12 +170,60 @@ class TiingoDataFetcher:
             os.remove(os.path.join(self.save_dir, filename))
 
 
+class YahooFinanceFallbackFetcher:
+    """
+    This class fetches historical stock data for specified tickers using Yahoo Finance API
+    when Tiingo API fails to provide data due to the monthly 500 unique stock ticker request limit.
+    """
+
+    def __init__(self, tickers, start_date, end_date, save_dir='/Users/macbook/Desktop/Farrer_Quant_Assignment/data/raw/'):
+        """
+        Initializes the Yahoo Finance fallback fetcher with tickers, date range, and save directory.
+
+        :param tickers: List of stock ticker symbols to fetch data for.
+        :param start_date: Start date for fetching historical data.
+        :param end_date: End date for fetching historical data.
+        :param save_dir: Directory to save the stock data files.
+        """
+        self.tickers = tickers
+        self.start_date = start_date
+        self.end_date = end_date
+        self.save_dir = save_dir
+        os.makedirs(self.save_dir, exist_ok=True)
+
+    def fetch_data(self):
+        """
+        Fetches historical data for all specified tickers and saves them as a single CSV file.
+        """
+        all_data = []
+        for ticker in tqdm(self.tickers, desc="Fetching fallback stock data"):
+            try:
+                stock = yf.Ticker(ticker)
+                df = stock.history(start=self.start_date, end=self.end_date)
+                df = df.reset_index()
+                df = df[['Date', 'Close']]  # Only keep date and close price
+                df.columns = ['date', 'adjClose']  # Rename columns for consistency
+                df['ticker'] = ticker
+                all_data.append(df)
+                logging.info(f"Successfully fetched data for {ticker} using Yahoo Finance API")
+            except Exception as e:
+                logging.error(f"Error fetching data for {ticker} from Yahoo Finance: {e}")
+
+        if all_data:
+            combined_df = pd.concat(all_data, ignore_index=True)
+            csv_filename = os.path.join(self.save_dir, 'fallback_stocks_data.csv')
+            combined_df.to_csv(csv_filename, index=False)
+            logging.info(f"Fallback stock data saved to {csv_filename}")
+        else:
+            logging.warning("No fallback data was successfully fetched.")
+
+
 class IndexDataFetcher:
     """
     This class fetches historical data for the S&P 500 index (^GSPC) using yfinance and saves it as a CSV file.
     """
 
-    def __init__(self, start_date, end_date, save_dir='data/raw/'):
+    def __init__(self, start_date, end_date, save_dir='/Users/macbook/Desktop/Farrer_Quant_Assignment/data/raw/'):
         """
         Initializes the index data fetcher with a date range and save directory.
 
@@ -212,7 +260,7 @@ class FREDDataFetcher:
     This class fetches economic data from the Federal Reserve Economic Data (FRED) using pandas_datareader.
     """
 
-    def __init__(self, series_id, start_date, end_date, save_dir='data/raw/'):
+    def __init__(self, series_id, start_date, end_date, save_dir='/Users/macbook/Desktop/Farrer_Quant_Assignment/data/raw/'):
         """
         Initializes the FRED data fetcher with a FRED series ID, date range, and save directory.
 
@@ -261,14 +309,21 @@ def main():
     tiingo_fetcher = TiingoDataFetcher(api_key, tickers, start_date, end_date)
     tiingo_fetcher.fetch_data()
 
-    # Step 3: Fetch S&P 500 index data from yfinance
+    # Step 3: Use YahooFinanceFallbackFetcher for remaining stocks
+    fallback_tickers = ['ZBRA', 'ZBH', 'ZTS']
+    fallback_fetcher = YahooFinanceFallbackFetcher(fallback_tickers, start_date, end_date)
+    fallback_fetcher.fetch_data()
+
+    # Step 4: Fetch S&P 500 index data from yfinance
     index_fetcher = IndexDataFetcher(start_date, end_date)
     index_fetcher.fetch_data()
 
-    # Step 4: Fetch Risk Free-Rate data from FRED
+    # Step 5: Fetch Risk Free-Rate data from FRED
     fred_series_id = 'DGS1'  # 1-Year Treasury Constant Maturity Rate
     fred_fetcher = FREDDataFetcher(fred_series_id, start_date, end_date)
     fred_fetcher.fetch_data()
+
+    logging.info("All data fetching completed. You can now proceed with data cleaning and merging in data_cleaning.py.")
 
 
 if __name__ == '__main__':
