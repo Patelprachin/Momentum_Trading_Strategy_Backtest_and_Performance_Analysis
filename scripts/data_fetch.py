@@ -298,7 +298,7 @@ def main():
 
     start_date = '2012-01-01'
     end_date = '2024-10-10'  # Can replace it with "datetime.now().strftime('%Y-%m-%d')"
-    api_key = '56054c41dd125c5b9a2678c7b34451d999f09d39'  # Replace with your Tiingo API key
+    api_key = ''  # Replace with your Tiingo API key
 
     # Step 1: Scrape S&P 500 companies
     ticker_scraper = SP500TickerScraper()
