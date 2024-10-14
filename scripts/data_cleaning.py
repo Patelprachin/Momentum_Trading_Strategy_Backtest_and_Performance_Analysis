@@ -36,6 +36,13 @@ class DataCleaner:
 
         df = pd.read_csv(stock_data_path)
         fallback_df = pd.read_csv(fallback_data_path)
+        fallback_df['date'] = pd.to_datetime(fallback_df['date'], errors='coerce')
+
+        # List of dates to remove
+        dates_to_remove = ['2024-10-11 00:00:00-04:00', '2024-10-14 00:00:00-04:00']
+
+        # Remove rows where 'date' is in the list of dates
+        fallback_df = fallback_df[~fallback_df['date'].isin(dates_to_remove)]
 
         # Combine main stock data with fallback data
         df = pd.concat([df, fallback_df], ignore_index=True)
@@ -46,6 +53,8 @@ class DataCleaner:
 
         # Drop rows with NaT in 'date'
         df.dropna(subset=['date'], inplace=True)
+
+        df['date'] = df['date'].replace(pd.Timestamp('2024-10-09 04:00:00'), pd.Timestamp('2024-10-09 00:00:00'))
 
         # Set 'date' and 'ticker' as a MultiIndex
         df.set_index(['date', 'ticker'], inplace=True)
@@ -232,6 +241,8 @@ class DataCleaner:
         logging.info(f"Cleaned index data shape: {cleaned_index_data.shape}")
         logging.info(f"Raw risk-free rate data shape: {raw_rf_data.shape}")
         logging.info(f"Cleaned risk-free rate data shape: {cleaned_rf_data.shape}")
+        num_unique_tickers = cleaned_stock_data.index.get_level_values('ticker').nunique()
+        logging.info(f"Number of unique tickers in cleaned stock data: {num_unique_tickers}")
 
     def run_cleaning_process(self):
         """
