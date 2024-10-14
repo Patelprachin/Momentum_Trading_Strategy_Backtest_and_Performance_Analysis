@@ -16,8 +16,8 @@ class DataCleaner:
         """
         Initializes the DataCleaner with paths to raw and cleaned data.
 
-        :param raw_data_path (str): Path to the directory containing raw data files.
-        :param cleaned_data_path (str): Path to the directory where cleaned data will be saved.
+        :param raw_data_path: Path to the directory containing raw data files.
+        :param cleaned_data_path: Path to the directory where cleaned data will be saved.
         """
 
         self.raw_data_path = raw_data_path
@@ -28,7 +28,7 @@ class DataCleaner:
         """
         Loads and combines stock data from main and fallback CSV files.
 
-        :return: pandas.DataFrame: A DataFrame containing combined stock data with 'date' and 'ticker' as a MultiIndex.
+        :return: A DataFrame containing combined stock data with 'date' and 'ticker' as a MultiIndex.
         """
 
         stock_data_path = os.path.join(self.raw_data_path, 'sp500_stocks_data.csv')
@@ -57,7 +57,7 @@ class DataCleaner:
         """
         Loads S&P 500 index data from a CSV file.
 
-        :return: pandas.DataFrame: A DataFrame containing index data with 'date' as the index.
+        :return: A DataFrame containing index data with 'date' as the index.
         """
 
         index_data_path = os.path.join(self.raw_data_path, 'sp500_index.csv')
@@ -79,7 +79,7 @@ class DataCleaner:
         """
         Loads the risk-free rate data from a CSV file.
 
-        :return: pandas.DataFrame: A DataFrame containing risk-free rate data with 'DATE' as the index.
+        :return: A DataFrame containing risk-free rate data with 'DATE' as the index.
         """
 
         rf_data_path = os.path.join(self.raw_data_path, 'DGS1.csv')
@@ -107,7 +107,7 @@ class DataCleaner:
         """
         Cleans stock data by removing NaNs, outliers, and insufficient data.
 
-        :param df (pandas.DataFrame): The raw stock data DataFrame.
+        :param df: The raw stock data DataFrame.
 
         :return: tuple:
                  pandas.DataFrame: Cleaned stock data.
@@ -134,9 +134,9 @@ class DataCleaner:
         """
         Removes outliers from a DataFrame based on z-score threshold.
 
-        :param df (pandas.DataFrame): The DataFrame from which to remove outliers.
-        :param column (str): The column name on which to calculate z-scores.
-        :param threshold (float): The z-score threshold to use for identifying outliers.
+        :param df: The DataFrame from which to remove outliers.
+        :param column: The column name on which to calculate z-scores.
+        :param threshold: The z-score threshold to use for identifying outliers.
 
         :return:    pandas.DataFrame: DataFrame with outliers removed.
         """
@@ -149,9 +149,9 @@ class DataCleaner:
         """
         Aligns the dates across stock data, index data, and risk-free rate data.
 
-        :param stock_data (pandas.DataFrame): The stock data DataFrame.
-        :param index_data (pandas.DataFrame): The index data DataFrame.
-        :param risk_free_rate (pandas.DataFrame): The risk-free rate DataFrame.
+        :param stock_data: The stock data DataFrame.
+        :param index_data: The index data DataFrame.
+        :param risk_free_rate: The risk-free rate DataFrame.
 
         :return: tuple:
                  pandas.DataFrame: Aligned stock data.
@@ -183,9 +183,9 @@ class DataCleaner:
         """
         Calculates returns from adjusted close prices.
 
-        :param df (pandas.DataFrame): The DataFrame containing 'adjClose' prices.
+        :param df: The DataFrame containing 'adjClose' prices.
 
-        :return: pandas.DataFrame: A DataFrame containing the returns.
+        :return: A DataFrame containing the returns.
         """
 
         if 'ticker' in df.index.names:
@@ -198,11 +198,11 @@ class DataCleaner:
         """
         Saves the cleaned data and calculated returns to CSV files.
 
-        :param stock_data (pandas.DataFrame): Cleaned stock data.
-        :param stock_returns (pandas.DataFrame): Calculated stock returns.
-        :param index_data (pandas.DataFrame): Cleaned index data.
-        :param index_returns (pandas.DataFrame): Calculated index returns.
-        :param risk_free_rate (pandas.DataFrame): Cleaned risk-free rate data.
+        :param stock_data: Cleaned stock data.
+        :param stock_returns: Calculated stock returns.
+        :param index_data: Cleaned index data.
+        :param index_returns: Calculated index returns.
+        :param risk_free_rate: Cleaned risk-free rate data.
         """
 
         stock_data.to_csv(os.path.join(self.cleaned_data_path, 'cleaned_stock_data.csv'))
@@ -218,12 +218,12 @@ class DataCleaner:
         """
         Logs the shapes of raw and cleaned datasets for comparison.
 
-        :param raw_stock_data (pandas.DataFrame): Raw stock data.
-        :param cleaned_stock_data (pandas.DataFrame): Cleaned stock data.
-        :param raw_index_data (pandas.DataFrame): Raw index data.
-        :param cleaned_index_data (pandas.DataFrame): Cleaned index data.
-        :param raw_rf_data (pandas.DataFrame): Raw risk-free rate data.
-        :param cleaned_rf_data (pandas.DataFrame): Cleaned risk-free rate data.
+        :param raw_stock_data: Raw stock data.
+        :param cleaned_stock_data: Cleaned stock data.
+        :param raw_index_data: Raw index data.
+        :param cleaned_index_data: Cleaned index data.
+        :param raw_rf_data : Raw risk-free rate data.
+        :param cleaned_rf_data: Cleaned risk-free rate data.
         """
 
         logging.info(f"Raw stock data shape: {raw_stock_data.shape}")
