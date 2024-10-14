@@ -54,7 +54,8 @@ class DataCleaner:
         # Drop rows with NaT in 'date'
         df.dropna(subset=['date'], inplace=True)
 
-        df['date'] = df['date'].replace(pd.Timestamp('2024-10-09 04:00:00'), pd.Timestamp('2024-10-09 00:00:00'))
+        # Remove the time from date
+        df['date'] = df['date'].apply(lambda x: pd.Timestamp(x.date()))
 
         # Set 'date' and 'ticker' as a MultiIndex
         df.set_index(['date', 'ticker'], inplace=True)
