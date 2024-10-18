@@ -408,14 +408,14 @@ def find_optimal_strategies(data_path, output_dir, start_date, end_date):
                                 optimal_strategies[key] = {'value': metrics[metric_key],
                                                            'params': current_params.copy()}
 
-    # Save optimal strategies
+    # Print and save results for each optimal strategy
     for strategy, data in optimal_strategies.items():
+        print(f"\n--- Optimal Strategy: {strategy} ---\n")
         backtester = MomentumBacktester(**data['params'])
-        backtester.run_backtest()
+        backtester.run_and_print_results()  # This will print the setup and performance metrics
+
         file_name = f"{strategy}.csv"
         output_path = os.path.join(output_dir, file_name)
-
-        # Save results using the backtester's save_results method
         backtester.save_results(output_dir)
 
         print(f"Results for {strategy} saved to {output_path}")

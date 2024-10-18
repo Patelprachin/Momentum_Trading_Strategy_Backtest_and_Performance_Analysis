@@ -394,15 +394,19 @@ def run_sensitivity_analysis(data_path, output_dir, start_date, end_date):
             if param_name == 'smoothing_window':
                 current_params['smoothing'] = True
 
+            print(f"\n{'='*50}")
+            print(f"Running backtest for {param_name} = {value}")
+            print(f"{'='*50}")
+
             backtester = MomentumBacktester(**current_params)
-            backtester.run_backtest()
-            metrics, _ = backtester.calculate_performance_metrics()
+            backtester.run_and_print_results()  # Call run_and_print_results() here
 
             # Save individual backtest results and get the output path
             output_path = backtester.save_results(param_dir)
-            print(f"Results for {param_name} = {value} saved to {output_path}")
+            print(f"\nResults saved to {output_path}")
 
             # Collect results for summary
+            metrics, _ = backtester.calculate_performance_metrics()
             result = {
                 'Parameter': param_name,
                 'Value': value,
@@ -415,7 +419,7 @@ def run_sensitivity_analysis(data_path, output_dir, start_date, end_date):
     summary_df = pd.DataFrame(all_results)
     summary_path = os.path.join(output_dir, 'summarised_results.csv')
     summary_df.to_csv(summary_path, index=False)
-    print(f"Summarized results saved to {summary_path}")
+    print(f"\nSummarized results saved to {summary_path}")
 
 
 def main():
