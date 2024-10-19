@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 import os
 from scipy import stats
 
@@ -254,6 +256,15 @@ class MomentumBacktester:
 
         return metrics, drawdown_df
 
+    def calculate_cumulative_returns(self):
+        """
+        Calculates cumulative returns for the strategy.
+
+        :return: Series of cumulative returns
+        """
+        returns_df = pd.DataFrame(self.results['daily_returns'], columns=['date', 'return']).set_index('date')
+        return (1 + returns_df['return']).cumprod() - 1
+
     def print_strategy_setup(self):
         """
         Prints the setup details of the momentum strategy.
@@ -381,31 +392,32 @@ def run_sensitivity_analysis(data_path, output_dir, start_date, end_date):
     }
 
     all_results = []
+    cumulative_returns = {}
 
     for param_name, param_info in sensitivity_params.items():
         param_dir = os.path.join(output_dir, param_info['dir_name'])
         os.makedirs(param_dir, exist_ok=True)
 
+        param_cumulative_returns = {}
+
         for value in param_info['values']:
             current_params = base_params.copy()
             current_params[param_info['param']] = value
 
-            # Set 'smoothing' to True when analyzing 'smoothing_window'
             if param_name == 'smoothing_window':
                 current_params['smoothing'] = True
 
-            print(f"\n{'='*50}")
+            print(f"\n{'=' * 50}")
             print(f"Running backtest for {param_name} = {value}")
-            print(f"{'='*50}")
+            print(f"{'=' * 50}")
 
             backtester = MomentumBacktester(**current_params)
-            backtester.run_and_print_results()  # Call run_and_print_results() here
+            backtester.run_backtest()
+            backtester.print_strategy_setup()
 
-            # Save individual backtest results and get the output path
             output_path = backtester.save_results(param_dir)
             print(f"\nResults saved to {output_path}")
 
-            # Collect results for summary
             metrics, _ = backtester.calculate_performance_metrics()
             result = {
                 'Parameter': param_name,
@@ -415,18 +427,67 @@ def run_sensitivity_analysis(data_path, output_dir, start_date, end_date):
             }
             all_results.append(result)
 
+            # Store cumulative returns for plotting
+            param_cumulative_returns[value] = backtester.calculate_cumulative_returns()
+
+        cumulative_returns[param_name] = param_cumulative_returns
+
     # Save summarized results
     summary_df = pd.DataFrame(all_results)
     summary_path = os.path.join(output_dir, 'summarised_results.csv')
     summary_df.to_csv(summary_path, index=False)
     print(f"\nSummarized results saved to {summary_path}")
 
+    # Generate plots
+    plot_cumulative_returns(cumulative_returns, output_dir)
+    plot_turnover_analysis(summary_df, output_dir)
+
+
+def plot_cumulative_returns(cumulative_returns, output_dir):
+    """
+    Plots cumulative returns for different strategy parameters.
+
+    :param cumulative_returns: Dictionary of cumulative returns for each parameter
+    :param output_dir: Directory to save the plots
+    """
+    plt.figure(figsize=(12, 8))
+    for param_name, param_returns in cumulative_returns.items():
+        if param_name in ['momentum_horizon', 'rebalance_frequency', 'smoothing_window', 'smoothing']:
+            plt.figure(figsize=(12, 8))
+            for value, returns in param_returns.items():
+                plt.plot(returns.index, returns.values, label=f"{value}")
+
+            plt.title(f"Cumulative Returns - {param_name}")
+            plt.xlabel("Date")
+            plt.ylabel("Cumulative Returns")
+            plt.legend()
+            plt.grid(True)
+            plt.savefig(os.path.join(output_dir, f"cumulative_returns_{param_name}.png"))
+            plt.close()
+
+
+def plot_turnover_analysis(summary_df, output_dir):
+    """
+    Plots turnover analysis for different rebalancing frequencies.
+
+    :param summary_df: DataFrame containing summary results
+    :param output_dir: Directory to save the plot
+    """
+    rebalance_freq_data = summary_df[summary_df['Parameter'] == 'rebalance_frequency']
+
+    plt.figure(figsize=(10, 6))
+    sns.barplot(x='Value', y='Average Turnover', data=rebalance_freq_data)
+    plt.title("Turnover Analysis for Different Rebalancing Frequencies")
+    plt.xlabel("Rebalancing Frequency")
+    plt.ylabel("Average Turnover (%)")
+    plt.savefig(os.path.join(output_dir, "turnover_analysis.png"))
+    plt.close()
+
 
 def main():
     """
     Main function to execute the sensitivity analysis.
     """
-
     data_path = "/Users/macbook/Desktop/Farrer_Quant_Assignment/data/calculations/momentum_calculations.csv"
     output_dir = "/Users/macbook/Desktop/Farrer_Quant_Assignment/data/backtesting/"
     start_date = "2019-10-09"
