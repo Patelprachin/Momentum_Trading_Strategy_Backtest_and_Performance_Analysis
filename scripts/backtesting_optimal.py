@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 import os
 from scipy import stats
 
@@ -329,8 +330,65 @@ class MomentumBacktester:
             else:
                 print(f"{metric}: {value:.2f}%")
 
+    def plot_cumulative_returns(self, sp500_returns, ax):
+        """
+        Plots the cumulative returns of the strategy and S&P 500.
 
-def find_optimal_strategies(data_path, output_dir, start_date, end_date):
+        :param sp500_returns: DataFrame containing S&P 500 returns.
+        :param ax: Matplotlib axis object for plotting.
+        """
+        strategy_returns = pd.DataFrame(self.results['daily_returns'], columns=['date', 'return']).set_index('date')
+        strategy_cum_returns = (1 + strategy_returns['return']).cumprod() - 1
+        sp500_cum_returns = (1 + sp500_returns['returns']).cumprod() - 1
+
+        ax.plot(strategy_cum_returns.index, strategy_cum_returns.values, label='Strategy')
+        ax.plot(sp500_cum_returns.index, sp500_cum_returns.values, label='S&P 500')
+        ax.set_title('Cumulative Returns: Strategy vs S&P 500')
+        ax.set_xlabel('Date')
+        ax.set_ylabel('Cumulative Returns')
+        ax.legend()
+
+    def plot_drawdown(self, ax):
+        """
+        Plots the drawdown of the strategy.
+
+        :param ax: Matplotlib axis object for plotting.
+        """
+        drawdown_df = self.calculate_drawdown()
+        ax.plot(drawdown_df.index, drawdown_df['drawdown'])
+        ax.set_title('Strategy Drawdown')
+        ax.set_xlabel('Date')
+        ax.set_ylabel('Drawdown')
+
+    def plot_turnover(self, ax):
+        """
+        Plots the turnover of the strategy.
+
+        :param ax: Matplotlib axis object for plotting.
+        """
+        turnover_df = pd.DataFrame(self.results['turnover'], columns=['date', 'turnover']).set_index('date')
+        ax.plot(turnover_df.index, turnover_df['turnover'])
+        ax.set_title('Strategy Turnover')
+        ax.set_xlabel('Date')
+        ax.set_ylabel('Turnover')
+
+
+def load_sp500_returns(file_path, start_date, end_date):
+    """
+    Loads S&P 500 returns from a CSV file and filters for the specified date range.
+
+    :param file_path: Path to the CSV file containing S&P 500 returns.
+    :param start_date: Start date for filtering.
+    :param end_date: End date for filtering.
+    :return: DataFrame containing filtered S&P 500 returns.
+    """
+    sp500_returns = pd.read_csv(file_path, parse_dates=['date'])
+    sp500_returns.set_index('date', inplace=True)
+    sp500_returns = sp500_returns.loc[start_date:end_date]
+    return sp500_returns
+
+
+def find_optimal_strategies(data_path, output_dir, start_date, end_date, sp500_returns_path):
     """
     Identifies optimal strategies by testing different parameter combinations for momentum-based backtesting.
 
@@ -338,6 +396,7 @@ def find_optimal_strategies(data_path, output_dir, start_date, end_date):
     :param output_dir: Directory where backtest results will be saved.
     :param start_date: Start date for the backtest.
     :param end_date: End date for the backtest.
+    :param sp500_returns_path: File path to the daily returns for the S&P 500 Index
     """
 
     base_params = {
@@ -368,6 +427,9 @@ def find_optimal_strategies(data_path, output_dir, start_date, end_date):
         '132d_holding_period_avg_return': {'value': -np.inf, 'params': None},
         '252d_holding_period_avg_return': {'value': -np.inf, 'params': None}
     }
+
+    # Load S&P 500 returns
+    sp500_returns = load_sp500_returns(sp500_returns_path, start_date, end_date)
 
     all_results = []
 
@@ -437,18 +499,33 @@ def find_optimal_strategies(data_path, output_dir, start_date, end_date):
     summary_df.to_csv(summary_path, index=False)
     print(f"Optimal summarized results saved to {summary_path}")
 
+    # Create plots for the strategy with the highest cumulative return
+    highest_cum_return_strategy = optimal_strategies['highest_cumulative_return']['params']
+    backtester = MomentumBacktester(**highest_cum_return_strategy)
+    backtester.run_backtest()
+
+    fig, axs = plt.subplots(3, 1, figsize=(12, 18))
+
+    backtester.plot_cumulative_returns(sp500_returns, axs[0])
+    backtester.plot_drawdown(axs[1])
+    backtester.plot_turnover(axs[2])
+
+    plt.tight_layout()
+    plot_path = os.path.join(output_dir, 'highest_cumulative_return_strategy_plots.png')
+    plt.savefig(plot_path)
+    plt.close()
+
+    print(f"Plots for the highest cumulative return strategy saved to {plot_path}")
+
 
 def main():
-    """
-    Main function to execute the search for optimal strategies.
-    """
-
     data_path = "/Users/macbook/Desktop/Farrer_Quant_Assignment/data/calculations/momentum_calculations.csv"
     output_dir = "/Users/macbook/Desktop/Farrer_Quant_Assignment/data/backtesting/"
     start_date = "2019-10-09"
     end_date = "2024-10-09"
+    sp500_returns_path = "/Users/macbook/Desktop/Farrer_Quant_Assignment/data/cleaned/index_returns.csv"
 
-    find_optimal_strategies(data_path, output_dir, start_date, end_date)
+    find_optimal_strategies(data_path, output_dir, start_date, end_date, sp500_returns_path)
 
 
 if __name__ == "__main__":
