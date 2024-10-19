@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy import stats
+from backtesting_sensitivity_analysis import MomentumBacktester
 import os
 
 
@@ -114,6 +116,15 @@ class LaggedMomentumBacktester:
 
         return returns.sum()
 
+    def calculate_cumulative_returns(self):
+        """
+        Calculates cumulative returns for the strategy.
+
+        :return: Series of cumulative returns
+        """
+        returns_df = pd.DataFrame(self.results['daily_returns'], columns=['date', 'return']).set_index('date')
+        return (1 + returns_df['return']).cumprod() - 1
+
     def calculate_drawdown(self):
         portfolio_values_df = pd.DataFrame(self.portfolio_values, columns=['date', 'value']).set_index('date')
         portfolio_values_df['peak'] = portfolio_values_df['value'].cummax()
@@ -203,13 +214,49 @@ class LaggedMomentumBacktester:
                 print(f"{metric}: {value:.2f}%")
 
 
+def plot_cumulative_returns_comparison(current_returns, lagged_returns, output_dir):
+    """
+    Plots a comparison of cumulative returns for current and lagged momentum strategies.
+
+    :param current_returns: Series of cumulative returns for current momentum strategy
+    :param lagged_returns: Series of cumulative returns for lagged momentum strategy
+    :param output_dir: Directory to save the plot
+    """
+    plt.figure(figsize=(12, 8))
+    plt.plot(current_returns.index, current_returns.values, label="Current Momentum (1m)")
+    plt.plot(lagged_returns.index, lagged_returns.values, label="Lagged Momentum")
+    plt.title("Cumulative Returns: Current vs Lagged Momentum")
+    plt.xlabel("Date")
+    plt.ylabel("Cumulative Returns")
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(os.path.join(output_dir, "cumulative_returns_comparison.png"))
+    plt.close()
+
+
 def main():
     data_path = "/Users/macbook/Desktop/Farrer_Quant_Assignment/data/calculations/momentum_calculations.csv"
     output_dir = "/Users/macbook/Desktop/Farrer_Quant_Assignment/data/backtesting/lagged_momentum"
     start_date = "2019-10-09"
     end_date = "2024-10-09"
 
-    backtester = LaggedMomentumBacktester(
+    # Run the current momentum strategy
+    current_backtester = MomentumBacktester(
+        data_path=data_path,
+        start_date=start_date,
+        end_date=end_date,
+        momentum_column='momentum_1m',
+        rebalance_freq='W',
+        holding_periods=[22, 66, 132, 252],
+        z_score_threshold=1,
+        smoothing=False,
+        smoothing_window=5
+    )
+    current_backtester.run_backtest()
+    current_cumulative_returns = current_backtester.calculate_cumulative_returns()
+
+    # Run the lagged momentum strategy
+    lagged_backtester = LaggedMomentumBacktester(
         data_path=data_path,
         start_date=start_date,
         end_date=end_date,
@@ -220,10 +267,15 @@ def main():
         smoothing=False,
         smoothing_window=5
     )
+    lagged_backtester.run_and_print_results()
+    lagged_cumulative_returns = lagged_backtester.calculate_cumulative_returns()
 
-    backtester.run_and_print_results()
-    output_path = backtester.save_results(output_dir)
+    # Plot the comparison
+    plot_cumulative_returns_comparison(current_cumulative_returns, lagged_cumulative_returns, output_dir)
+
+    output_path = lagged_backtester.save_results(output_dir)
     print(f"Results saved to {output_path}")
+    print(f"Comparison plot saved to {output_dir}/cumulative_returns_comparison.png")
 
 
 if __name__ == "__main__":
